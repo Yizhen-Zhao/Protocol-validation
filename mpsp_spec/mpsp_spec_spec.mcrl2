@@ -1,4 +1,88 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% console
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Console behaviors
+
+sort ButtonAct;
+cons up: ButtonAct;
+	 down: ButtonAct;
+	 stop: ButtonAct;
+	 resume: ButtonAct;
+	 reset: ButtonAct;
+	 undock: ButtonAct;
+
+act press, release: ButtonAct;
+
+proc Console = (up + down + stop + resume + reset + undock) . Console;
+
+
+% Sensors behaviors
+% Sensors normal behaviors
+act at_rightmost, at_leftmost, at_uppermost, at_lowermost, reach_standard_height, docked;
+
+proc Horizontal = (at_uppermost + at_lowermost + reach_standard_height). Horizontal
+	 Vertical = (at_rightmost + at_leftmost). Vertical
+	 Docked = docked. Docked
+	 Sensors = allow({at_rightmost, at_leftmost, at_lowermost, reach_standard_height, docked}, Horizontal || Vertical || Docked);
+
+% Sensors central processing unit behavior
+sort Mode;
+cons in_emergency: Mode;
+	 in_normal: Mode;
+
+sort HorizontalMotorState;
+cons moving_right: HorizontalMotorState;
+	 moving_left: HorizontalMotorState;
+
+sort VerticalMotorState;
+cons moving_up: VerticalMotorState;
+	 moving_down: VerticalMotorState;
+
+sort BrakeState;
+cons applied: BrakeState;
+	 released: BrakeState;
+
+sort CentralUnitState = struct state(
+	mode: Mode,
+	m1: VerticalMotorState,
+	m2: HorizontalMotorState,
+	m1_brake: BrakeState,
+	m2_brake: BrakeState
+);
+
+
+% Output behaviors (motors and brakes)
+
+act move_right, move_left, move_up, move_down, turn_m1_off, turn_m2_off
+
+proc 
+	 HorizontalMotor(s: HorizontalMotorMotorState) = (s == turn_m2_off) -> (move_up.HorizontalMotor(moving_up) + 			
+	 move_down.HorizontalMotor(moving_down))
+	 <> (s == moving_up) -> (turn_m2_off.HorizontalMotor(turn_m2_off) + move_down.HorizontalMotor(moving_down))
+	 <> (s == moving_down) -> (turn_m2_off.HorizontalMotor(turn_m2_off) + move_up.HorizontalMotor(moving_up));
+
+	 VerticalMotor(s:VerticalMotorState) = (s == turn_m1_off) -> (move_left.VerticalMotor(moving_left) + 
+	 move_right.VerticalMotor(moving_right))
+	 <> (s == moving_left) -> (turn_m1_off.VerticalMotor(turn_m1_off) + move_right.VerticalMotor(moving_right))
+	 <> (s == moving_right) -> (turn_m1_off.VerticalMotor(turn_m1_off) + move_left.VerticalMotor(moving_left));
+ 
+act apply_m1_brake, apply_m2_brake, release_m1_brake, release_m2_brake;
+
+proc 
+	HorizontalBrake(s: BrakeState) = (s == released) -> apply_m2_brake.HorizontalBrake(applied)
+	<> (s == applied) -> release_m2_brake.HorizontalBrake(released);
+	VerticalBrake(s: state) = (s == released) -> apply_m1_brake.VerticalBrake(applied)
+	<> (s == applied) -> release_m1_brake.VerticalBrake(released);
+
+proc
+	Output(initialState: CentralUnitState) = allow({
+	move_up, move_down, turn_m2_off,
+	move_left, move_right, turn_m1_off,
+	apply_m2_brake, release_m2,brake
+	apply_m1_brake, release_m1_brake,
+},  (HorizontalMotor (m2(initialState))
+	|| HorizontalBrake (m2_brake(initialState))
+	|| VerticalMotor (m1(initialState))
+	|| VerticalBrake (m1_brake(initialState))
+);
+
+
+
 
