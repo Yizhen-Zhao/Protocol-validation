@@ -1,0 +1,17 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% console
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+sort ButtonLabel = struct up | down | stop | resume | undock | reset;
+act s_tap, s_press, s_release: ButtonLabel;
+
+proc
+	Console =
+	  (	Button(up)
+	  +	Button(down)
+	  +	Button(stop)
+	  +	Button(resume)
+	  +	Button(undock)
+	  +	Button(reset)
+	  ) . Console;
+
+	Button(l : ButtonLabel) = s_tap(l) + s_press(l).s_release(l);

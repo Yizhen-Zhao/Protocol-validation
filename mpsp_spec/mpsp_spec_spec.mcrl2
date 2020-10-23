@@ -15,17 +15,23 @@ proc Console = (up + down + stop + resume + reset + undock) . Console;
 
 % Sensors behaviors
 % Sensors normal behaviors
-act at_rightmost, at_leftmost, at_uppermost, at_lowermost, reach_standard_height, docked;
 
-proc Horizontal = (at_uppermost + at_lowermost + reach_standard_height). Horizontal
-	 Vertical = (at_rightmost + at_leftmost). Vertical
-	 Docked = docked. Docked
-	 Sensors = allow({at_rightmost, at_leftmost, at_lowermost, reach_standard_height, docked}, Horizontal || Vertical || Docked);
+%% todo need to sense calibration
+act 
+	at_rightMost, at_leftMost; 
+	at_upperMost, at_lowerMost;
+	reach_standard_height, docked;
+
+proc Horizontal = (at_upperMost + at_lowerMost + reach_standard_height). Horizontal;
+	 Vertical = (at_rightMost + at_leftMost). Vertical;
+	 DockSensor = docked. DockSensor;
+	 Sensors = allow({at_rightMost, at_leftMost, at_lowerMost, reach_standard_height, docked}, Horizontal || Vertical || DockSensor);
 
 % Sensors central processing unit behavior
 sort Mode;
 cons in_emergency: Mode;
 	 in_normal: Mode;
+
 
 sort HorizontalMotorState;
 cons moving_right: HorizontalMotorState;
@@ -39,18 +45,22 @@ sort BrakeState;
 cons applied: BrakeState;
 	 released: BrakeState;
 
+
 sort CentralUnitState = struct state(
 	mode: Mode,
 	m1: VerticalMotorState,
 	m2: HorizontalMotorState,
 	m1_brake: BrakeState,
-	m2_brake: BrakeState
+	m2_brake: BrakeState,
+	position: Position,
+	calibrate: Calibrated,
+	docked: Docked
 );
 
 
 % Output behaviors (motors and brakes)
 
-act move_right, move_left, move_up, move_down, turn_m1_off, turn_m2_off
+act move_right, move_left, move_up, move_down, turn_m1_off, turn_m2_off;
 
 proc 
 	 HorizontalMotor(s: HorizontalMotorMotorState) = (s == turn_m2_off) -> (move_up.HorizontalMotor(moving_up) + 			
@@ -71,18 +81,188 @@ proc
 	VerticalBrake(s: state) = (s == released) -> apply_m1_brake.VerticalBrake(applied)
 	<> (s == applied) -> release_m1_brake.VerticalBrake(released);
 
+act
+	undock;
 proc
-	Output(initialState: CentralUnitState) = allow({
-	move_up, move_down, turn_m2_off,
-	move_left, move_right, turn_m1_off,
-	apply_m2_brake, release_m2,brake
-	apply_m1_brake, release_m1_brake,
-},  (HorizontalMotor (m2(initialState))
-	|| HorizontalBrake (m2_brake(initialState))
-	|| VerticalMotor (m1(initialState))
-	|| VerticalBrake (m1_brake(initialState))
-);
+	UndockSensor = undock.UndockSensor;
 
+proc
+	Output(initialState: CentralUnitState) = 
+		allow({
+			move_up, move_down, turn_m2_off,
+			move_left, move_right, turn_m1_off,
+			apply_m2_brake, release_m2,brake,
+			apply_m1_brake, release_m1_brake,
+			undock
+		},
+			 ( HorizontalMotor (m2(initialState))
+			|| HorizontalBrake (m2_brake(initialState))
+			|| VerticalMotor (m1(initialState))
+			|| VerticalBrake (m1_brake(initialState))
+			|| UndockSensor
+		));
 
+% mapping tools
 
+map
+	% Status checks
+	isUndocked                        	: CentralUnitState -> Bool;
+	isDocked                          	: CentralUnitState -> Bool;
+	isInNormalMode                      : CentralUnitState -> Bool;
+	isInEmergencyMode                   : CentralUnitState -> Bool;
+	isCalibrated                      	: CentralUnitState -> Bool;
+	isUncalibrated                    	: CentralUnitState -> Bool;
+	isAtRightMost  			          	: CentralUnitState -> Bool;
+	isAtLeftMost  			          	: CentralUnitState -> Bool;
+	isAtUpperMost  			          	: CentralUnitState -> Bool;
+	isAtLowerMost				        : CentralUnitState -> Bool;
+	isAtStandardHeight				  	: CentralUnitState -> Bool;
+	isMovingUp					  		: CentralUnitState -> Bool;
+	isMovingDown							: CentralUnitState -> Bool;
+	isMovingLeft					  		: CentralUnitState -> Bool;
+	isMovingRight					  	: CentralUnitState -> Bool;
 
+	% State transformers
+	stateTransDocked                      	: CentralUnitState -> CentralUnitState;
+	stateTransUndocked                    	: CentralUnitState -> CentralUnitState;
+	%% Mode
+	stateTransEmergencyMode               	: CentralUnitState -> CentralUnitState;
+	stateTransNormalMode               		: CentralUnitState -> CentralUnitState;
+	%% Position
+	stateTransCalibrated                  	: CentralUnitState -> CentralUnitState;
+	stateTransUncalibrated                  : CentralUnitState -> CentralUnitState;
+	stateTransUpperMost                   	: CentralUnitState -> CentralUnitState;
+	stateTransLowerMost                   	: CentralUnitState -> CentralUnitState;
+	stateTransLeftMost                   	: CentralUnitState -> CentralUnitState;
+	stateTransRightMost                   	: CentralUnitState -> CentralUnitState;
+	stateTransStandardHeight              	: CentralUnitState -> CentralUnitState;
+	%% Motor
+	stateTransVerMotorUp       		        : CentralUnitState -> CentralUnitState;
+	stateTransVerMotorDown       		    : CentralUnitState -> CentralUnitState;
+	stateTransHorMotorLeft       		    : CentralUnitState -> CentralUnitState;
+	stateTransHorMotorRight       		    : CentralUnitState -> CentralUnitState;
+	stateTransHorizontalMotorOff	        : CentralUnitState -> CentralUnitState;
+	stateTransVerticalMotorOff		        : CentralUnitState -> CentralUnitState;
+	%% Brakes
+	stateTransVerticalBrakeOff       		: CentralUnitState -> CentralUnitState;
+	stateTransHorizontalBrakeOff       		: CentralUnitState -> CentralUnitState;
+	stateTransVerticalBrakeOn       		: CentralUnitState -> CentralUnitState;
+	stateTransHorizontalBrakeOn       		: CentralUnitState -> CentralUnitState;
+
+var
+	st  : CentralUnitState;
+	mode  : Mode;
+	cali  : Calibrated;
+	d  : Docked;
+	m1 : VerticalMotorState;
+	m2 : HorizontalMotorState;
+	m1_brake : BrakeState;
+	m2_brake : BrakeState;
+	pos  : Position;
+
+eqn
+	isUndocked(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		d == undocked;
+	isDocked(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		d == docked;
+
+	isNormalMode(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		mode == normalMode;
+	isEmergencyMode(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		mode == emergencyMode;
+% TODO need to set for calibration
+	isCalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		cali == calibratedInBetween ||
+		cali == calibratedLowerMost ||
+		cali == calibratedUpperMost;
+
+	isUncalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		cali == uncalibrated;
+
+	isAtRightMost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		pos == upperMost ||
+		pos == lowerMost ||
+		pos == standardHeight;
+
+	isAtLeftMost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		pos == leftMost;
+
+	isAtUpperMost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		pos == upperMost;
+
+	isAtLowerMost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		pos == lowerMost;
+
+	isAtStandardHeight(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		pos == standardHeight ||
+		(cali == calibratedLowerMost && p == lowerMost) ||
+		(cali == calibratedUpperMost && p == upperMost);
+
+	isMovingUp(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		m1 == moving_up;
+	isMovingDown(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		m1 == moving_down;
+	isMovingLeft(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		m2 == moving_left;
+	isMovingRight(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		m2 == moving_right;
+
+	% docker
+	stateTransDocked(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, docked, m1, m2, m1_brake, m2_brake, pos);
+	stateTransUndocked(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, undocked, m1, m2, m1_brake, m2_brake, pos);
+	% mode change
+	stateTransEmergencyMode(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(emergencyMode, cali, undocked, verticalMotorOff, horizontalMotorOff, on, off, pos);
+	stateTransNormalMode(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(normalMode, cali, undocked, verticalMotorOff, horizontalMotorOff, on, on, pos);
+	% Calibrate
+	(pos == uppermost) -> stateTransCalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, calibratedUppermost, docked, m1, m2, m1_brake, m2_brake, uppermost);
+	(pos== lowermost) -> stateTransCalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+	 	state(mode, calibratedLowermost, docked, m1, m2, m1_brake, m2_brake, lowermost);
+	(pos == verticalBetween || pos == standardHeight || p == aboveStandardHeight || p == belowStandardHeight) ->
+	
+	stateTransCalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+			state(mode, calibratedInBetween, docked, m1, m2, m1_brake, m2_brake, standardHeight);
+	%% TODO ++horizontalBetween?
+	(pos == leftmost || pos == horizontalBetween) -> stateTransCalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+			state(mode, cali, docked, m1, m2, m1_brake, m2_brake, pos);
+	(pos != uppermost && p != lowermost) -> stateTransUncalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, uncalibrated, undocked, m1, m2, m1_brake, m2_brake);
+	(pos == uppermost || pos == lowermost) -> stateTransUncalibrated(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, uncalibrated, undocked, m1, m2, m1_brake, m2_brake, pos);
+	% Position
+	stateTransUppermost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, m2_brake, uppermost);
+	stateTransLowermost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, m2_brake, lowermost);
+	stateTransLeftmost(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, m2_brake, leftmost);
+	(cali == calibratedLowermost) -> stateTransStandardHeight(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, m2_brake, lowermost);
+	(cali == calibratedUppermost) -> stateTransStandardHeight(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, m2_brake, uppermost);
+	% Brake
+	stateTransVerticalBrakeOff(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, off, m2_brake, pos);
+	stateTransHorizontalBrakeOff(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, off, pos);
+	stateTransVerticalBrakeOn(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, on, m2_brake, pos);
+	state2HorizontalBrakeOn(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, m2, m1_brake, off, pos);
+	% Motor
+	stateTransMotorUp(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, moving_Up, m2, m1_brake, m2_brake, pos);
+	stateTransMotorDown(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, moving_Down, m2, m1_brake, m2_brake, pos);
+	stateTransMotorLeft(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, moving_left, m1_brake, m2_brake, pos);
+	stateTransMotorRight(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, moving_right, m1_brake, m2_brake, pos);
+	stateTransHorizontalMotorOff(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, m1, horizontalMotorOff, m1_brake, m2_brake, pos);
+	stateTransVerticalMotorOff(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
+		state(mode, cali, d, verticalMotorOff, m2, m1_brake, m2_brake, pos);
