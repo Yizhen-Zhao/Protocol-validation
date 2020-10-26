@@ -1,4 +1,12 @@
 <root>
  <spec>test_spec.mcrl2</spec>
- <properties/>
+ <properties>
+  <property>SR1</property>
+  <property>SR2</property>
+  <property>SR3</property>
+  <property>SR4</property>
+  <property>SR5</property>
+  <property>SR6</property>
+  <property>SR12</property>
+ </properties>
 </root>

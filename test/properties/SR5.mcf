@@ -1,0 +1,1 @@
+[((move_left || move_right).apply_m2_brake ) + ( (move_up || move_down).apply_m1_brake)]true
