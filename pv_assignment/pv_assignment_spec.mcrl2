@@ -1,0 +1,75 @@
+sort Mode = struct Emergency | Normal;
+
+sort ButtonAct = struct up |  down | stop | resume | reset | undock;
+
+sort HorizontalMotorState = struct moving_right | moving_left | appiled_brake_m2;
+
+sort VerticalMotorState = struct moving_up | moving_down | appiled_brake_m1;
+
+sort Operation = struct in_emergency | in_normal | op_undock | m1_up | m2_up | m1_down | m2_down | cali | uncali;
+
+sort SensorProcessor = struct r_docked | r_uppermost | r_lowermost | r_rightmost | r_leftmost | r_standardHeight;
+
+act 
+	% Button activity
+	read1, send2, read2, comm2: ButtonAct; 
+
+	% send moving operation to output
+	send3, read3, comm3, send4, read4, comm4: Operation;
+	read2, send3: SensorProcessor;
+	act_move_right, act_move_left, act_move_up, act_move_down, apply_m1_brake, apply_m2_brake, release_m1_brake, release_m2_brake;
+	act_uppermost, act_lowermost, act_rightmost, act_leftmost, act_standardHeight;
+	docked, undocked;
+
+proc 
+	Console = sum action:ButtonAct. read1(action). send2(action). Console;
+
+	Sensor(mode: Mode, Docked, Cali, rightmost, leftmost, uppermost, lowermost, standardHeight, M1state: VerticalMotorState, M2state: 	HorizontalMotorState)
+	= sum action:ButtonAct. read2(action). 
+	(
+	(Docked && mode == Normal && action == stop) -> send3(in_emergency). Sensor(mode = Emergency, M2State = appiled_brake_m2)
+	+(Docked && mode == Emergency && action == resume) -> send3(in_normal). Sensor(mode = Normal)
+	+(Docked && mode == Normal && !Cali && action == reset) -> send3(cali). Sensor(Cali = true)
+	+(!Docked && mode == Normal && action == reset) -> send3(uncali). Sensor(Cali = false)
+	+(Docked && action == undock && rightmost) -> send3(op_undock). Sensor(Docked = false)
+	+(Docked && mode == Normal && Cali && M2State != move_left && !leftmost) -> send3(m1_up). Sensor(rightmost = false, M2State = move_left)
+	+(mode == Normal && !Cali && M1State != move_up && !uppermost) -> send3(m2_up). Sensor(rightmost = true, lowermost = false, M1State = move_up)
+	+(Docked && mode == Normal && Cali && M2State != move_right && !rightmost) -> send3(m1_down). Sensor(leftmost = false, M2State = move_right)
+	+(mode == Normal && !Cali && M1State != move_down && !lowermost) -> send3(m2_down). Sensor(uppermost = true, M1State = move_down)
+	<> Sensor(mode, Docked, Cali, rightmost, leftmost, uppermost, lowermost, standardHeight, M1State, M2State)
+	)
+	
+	+sum action:SensorProcessor. read4(action). ((action == r_docked) -> Sensor(Docked = true)
+	+(action == r_uppermost) -> Sensor(uppermost = true)
+	+(action == r_lowermost) -> Sensor(lowermost = true)
+	+(action == r_rightmost) -> Sensor(rightmost = true)
+	+(action == r_leftmost) -> Sensor(leftmost = true)
+	+(action == r_standardHeight) -> Sensor(standardHeight = true)
+	<> Sensor (mode, Docked, Cali,  rightmost,  leftmost, uppermost, lowermost, standardHeight, M1State, M2State));
+
+
+Output = sum action: Operation. read3(action).
+((action == in_emergency) -> release_m2_brake. apply_m2_brake. SensorProcessor
+	+(action == in_normal) -> apply_m2_brake. SensorProcessor
+	+(action == cali) -> apply_m1_brake. SensorProcessor
+	+(action == uncali) -> release_m1_brake. SensorProcessor
+	+(action == m1_up) -> release_m2_brake. act_move_left. SensorProcessor
+	+(action == m2_up) -> release_m1_brake. act_move_up. SensorProcessor
+	+(action == m1_down) -> release_m2_brake. act_move_right. SensorProcessor
+	+(action == m2_down) -> release_m1_brake. act_move_down. SensorProcessor
+	<> Output)
+	+docked. send4(r_docked)
+	+act_rightmost. apply_m2_brake. send4(r_rightmost)
+	+act_leftmost. apply_m2_brake. send4(r_leftmost)
+	+act_uppermost. apply_m1_brake. send4(r_uppermost)
+	+act_lowermost. apply_m1_brake. send4(r_lowermost)
+	+act_standardHeight. send4(r_standardHeight);
+
+
+init
+	allow({read1, comm2, comm3, comm4},
+	comm({
+		read2|send2 -> comm2,
+		read3|send3 -> comm3,
+		read4|send4 -> comm4},
+		Console || Sensor (Normal, false, false, false, false, flase, true, false, appiled_brake_m1, appiled_brake_m2) || Output));

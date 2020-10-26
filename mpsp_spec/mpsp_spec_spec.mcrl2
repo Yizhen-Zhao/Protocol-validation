@@ -102,6 +102,7 @@ proc
 			|| UndockSensor
 		));
 
+
 % mapping tools
 
 map
@@ -198,6 +199,7 @@ eqn
 		(cali == calibratedLowerMost && p == lowerMost) ||
 		(cali == calibratedUpperMost && p == upperMost);
 
+%% might be move_up/ move_down
 	isMovingUp(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
 		m1 == moving_up;
 	isMovingDown(state(mode, cali, d, m1, m2, m1_brake, m2_brake, pos)) =
