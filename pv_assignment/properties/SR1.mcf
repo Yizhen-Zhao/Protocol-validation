@@ -1,1 +1,1 @@
-[true* . undocked . (move_up || move_down)]false
+[true* . undocked . (act_move_up || act_move_down)]false
