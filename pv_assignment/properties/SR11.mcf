@@ -1,0 +1,2 @@
+%When  the  MPSP  is  docked  and  calibrated,  the  Up  and  Downbutton can be used to move the bed left and right
+[send4(r_docked)&&send3(cali).read1(up).act_move_left]true

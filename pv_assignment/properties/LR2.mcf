@@ -1,0 +1,3 @@
+%The Resume button should allow MPSP back to normal operatingmode if then emergency mode is activated
+
+[true* .send3(in_emergency).read1(resume).send3(in_normal)]true

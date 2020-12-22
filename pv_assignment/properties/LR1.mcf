@@ -1,0 +1,4 @@
+%When MPSP is in emergency mode, the horizontal brake must bereleased so that medical staff could drag the patient outside the scanner.
+% mu x version?
+%[true* .send3(in_emergency) .(!release_m2_brake)*] <true* release_m2_brake>true
+[true* .send3(in_emergency).release_m2_brake]true

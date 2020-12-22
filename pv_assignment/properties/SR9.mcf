@@ -1,0 +1,7 @@
+% If the MPSP is docked, calibrated and at the standard height, andat  the  same  time,  Up  button  is  pressed,  then  the  Up  button  should  bereleased before the inward movement is commenced
+%If  docked,  cali  and  actstandardheight,  and  up  ,  then  before  an occurrence of actmoveleft, there should be not up
+
+%Action b may not happen after an action c, unless an action a occurs after this c and before this b:
+%[true*.c.!a*.b]false
+
+[true* .docked.send3(cali).act_standardHeight.read1(up)*.act_move_left]false
