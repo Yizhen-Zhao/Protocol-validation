@@ -8,7 +8,7 @@ sort VerticalMotorState = struct moving_up | moving_down | appiled_brake_m1;
 
 sort Operation = struct in_emergency | in_normal | op_undock | m1_up | m2_up | m1_down | m2_down | cali | uncali;
 
-sort SensorProcessor = struct r_docked | r_uppermost | r_lowermost | r_rightmost | r_leftmost | r_standardHeight;
+sort SensorProcessor = struct r_docked | r_undocked | r_uppermost | r_lowermost | r_rightmost | r_leftmost | r_standardHeight;
 
 act 
 	% Button activity
@@ -40,6 +40,7 @@ proc
 	)
 	
 	+sum action:SensorProcessor. read4(action). ((action == r_docked) -> Sensor(Docked = true)
+	+(action == r_undocked) -> Sensor(rightmost = true)
 	+(action == r_uppermost) -> Sensor(uppermost = true)
 	+(action == r_lowermost) -> Sensor(lowermost = true)
 	+(action == r_rightmost) -> Sensor(rightmost = true)
@@ -59,6 +60,7 @@ Output = sum action: Operation. read3(action).
 	+(action == m2_down) -> release_m1_brake. act_move_down. Output
 	<> Output)
 	+docked. send4(r_docked)
+	+undocked.send4(r_undocked)
 	+act_rightmost. apply_m2_brake. send4(r_rightmost)
 	+act_leftmost. apply_m2_brake. send4(r_leftmost)
 	+act_uppermost. apply_m1_brake. send4(r_uppermost)
