@@ -1,1 +1,2 @@
-[act_uppermost . act_move_up]false || [act_lowermost . act_move_down]false
+
+[true* .(undocked || !act_standardHeight). read1(up) .act_move_up]true

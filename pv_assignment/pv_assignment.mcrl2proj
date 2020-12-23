@@ -10,5 +10,19 @@
   <property>SR7</property>
   <property>SR10</property>
   <property>SR12</property>
+  <property>SR8</property>
+  <property>SR9</property>
+  <property>SR11</property>
+  <property>SR11_2</property>
+  <property>SR12_2</property>
+  <property>SR13</property>
+  <property>SR13_2</property>
+  <property>LR1</property>
+  <property>LR2</property>
+  <property>LR3</property>
+  <property>LR4</property>
+  <property>LR5</property>
+  <property>LR6</property>
+  <property>LR7</property>
  </properties>
 </root>

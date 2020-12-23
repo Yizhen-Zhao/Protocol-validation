@@ -1,1 +1,1 @@
-[true* .act_move_down. apply_m1_brake]true
+[true* .(!act_move_down || !act_move_up). apply_m1_brake]true
