@@ -1,2 +1,2 @@
 
-[true* .(undocked || !act_standardHeight). read1(up) .act_move_up]true
+[true* .(undocked + !act_standardHeight). read1(up) .act_move_up]true
