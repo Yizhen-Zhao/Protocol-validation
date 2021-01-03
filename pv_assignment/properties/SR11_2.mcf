@@ -1,1 +1,1 @@
-[true* .(send4(r_docked)&&send3(cali)).read1(down).act_move_right]true
+[true* .(send4(r_docked) .send3(cali)).read1(down)]mu X. [!act_move_right]X

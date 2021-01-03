@@ -1,1 +1,1 @@
-[true* .(undocked + !act_standardHeight). read1(down) .act_move_down]true
+[true* .(undocked .!act_lowermost). read1(down)]mu X .[!act_move_down]X

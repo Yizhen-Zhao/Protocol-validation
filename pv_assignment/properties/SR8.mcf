@@ -1,3 +1,3 @@
 %The MPSP will go into uncalibrated mode if the MPSP is in un-docked mode and then the reset button has been pressed
 
-[true* .undocked. read1(reset). send3(uncali)]true
+[true* .undocked. read1(reset)]mu X. [!send3(uncali)]X

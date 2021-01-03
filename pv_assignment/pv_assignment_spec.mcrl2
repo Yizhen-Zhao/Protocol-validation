@@ -33,10 +33,10 @@ proc
 	+(!Docked && mode == Normal && action == reset) -> send3(uncali). Sensor(Cali = false)
 	+(Docked && action == undock && rightmost) -> send3(op_undock). Sensor(Docked = false)
 	+(mode == Normal && Docked && Cali && M2state != moving_left && !leftmost) -> send3(m1_up). Sensor(rightmost = false, M2state = moving_left)
-	+(mode == Normal && !Cali && M1state != moving_up && !uppermost) -> send3(m2_up). Sensor(rightmost = true, lowermost = false, M1state = moving_up)
+	+(!Docked && mode == Normal && !Cali && M1state != moving_up && !uppermost) -> send3(m2_up). Sensor(rightmost = true, lowermost = false, M1state = moving_up)
 	+(mode == Normal && Docked && Cali && M2state != moving_right && !rightmost) -> send3(m1_down). Sensor(leftmost = false, M2state = moving_right)
-	+(mode == Normal && !Cali && M1state != moving_down && !lowermost) -> send3(m2_down). Sensor(uppermost = true, M1state = moving_down)
-	<> Sensor(mode, Docked, Cali, rightmost, leftmost, uppermost, lowermost, standardHeight, M1state, M2state)
+	+(!Docked && mode == Normal && !Cali && M1state != moving_down && !lowermost) -> send3(m2_down). Sensor(uppermost = true, M1state = moving_down)
+    <> Sensor(mode, Docked, Cali, rightmost, leftmost, uppermost, lowermost, standardHeight, M1state, M2state)
 	)
 	
 	+sum action:SensorProcessor. read4(action). ((action == r_docked) -> Sensor(Docked = true)
